@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marriage Duration Predictor</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------- Design tokens ---------- */
+    :root {
+      --ink: #1b1f45;          /* deep navy: text, buttons */
+      --ink-soft: #4a4f7a;     /* secondary text */
+      --sky-1: #6b86c9;        /* top of the sky */
+      --sky-2: #a7b0e2;
+      --sky-3: #e7c6cf;        /* dusk haze */
+      --sky-4: #f5b48a;        /* horizon glow */
+      --ground-1: #b3b1dc;
+      --accent: #ee8a4a;       /* warm orange: icons, slider fill, focus */
+      --page: #d8d1ca;
+      --glass: rgba(255, 255, 255, 0.74);
+      --glass-edge: rgba(255, 255, 255, 0.7);
+      --font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: clamp(0.75rem, 2vw, 1.5rem);
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(80% 60% at 20% 10%, rgba(255, 255, 255, 0.5), transparent 70%),
+        var(--page);
+    }
+
+    /* ---------- The stage: one big rounded scene ---------- */
+    .stage {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1rem 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      align-items: start;
+      border-radius: 32px;
+      overflow: hidden;
+      overflow: clip;   /* clip (unlike hidden) still lets position: sticky work */
+      box-shadow: 0 30px 80px rgba(27, 31, 69, 0.25);
+      background:
+        radial-gradient(90% 45% at 50% 42%, rgba(245, 180, 138, 0.55), transparent 70%),
+        linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 30%, var(--sky-3) 58%, var(--ground-1) 100%);
+    }
+
+    .main { min-width: 0; padding-left: 1rem; }
+
+    /* ---------- Left icon rail ---------- */
+    .rail {
+      position: sticky;
+      top: 1rem;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.6rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+    }
+    .rail-logo {
+      display: grid; place-items: center;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+    .rail a {
+      display: grid; place-items: center;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      color: var(--ink);
+      transition: background 0.2s;
+    }
+    .rail a:hover { background: rgba(27, 31, 69, 0.08); }
+
+    .ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(238, 138, 74, 0.7);
+      outline-offset: 3px;
+    }
+
+    /* ---------- Top bar ---------- */
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 0.4rem 1.1rem 0.4rem 0.4rem;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font: 700 0.9rem var(--font);
+    }
+    button.pill { cursor: pointer; }
+    button.pill:hover { background: #fff; }
+
+    .pill-icon {
+      display: grid; place-items: center;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--ink);
+    }
+
+    /* the live summary in the middle of the bar */
+    .summary {
+      display: flex; align-items: center;
+      padding: 0.5rem 0.4rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .summary > div {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0 1.1rem;
+    }
+    .summary > div + div { border-left: 1px solid rgba(27, 31, 69, 0.14); }
+    .summary .ico { color: var(--ink-soft); }
+    .summary small { display: block; font-size: 0.7rem; color: var(--ink-soft); line-height: 1.2; }
+    .summary strong { display: block; font-size: 0.86rem; line-height: 1.3; }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      position: relative;
+      height: clamp(300px, 40vw, 430px);
+      margin-top: 0.25rem;
+    }
+    .hero h1 {
+      position: absolute; top: 0; left: 0; right: 0;
+      margin: 0;
+      padding-top: clamp(1rem, 3vw, 2.25rem);
+      text-align: center;
+      font-size: clamp(2.5rem, 7.2vw, 5.8rem);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 2px 40px rgba(50, 60, 140, 0.3);
+    }
+    .hero-art {
+      position: absolute; left: 50%; bottom: 0;
+      width: min(100%, 860px);
+      transform: translateX(-50%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    #ring-b { transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    .hero-sub {
+      position: absolute; left: 0; bottom: 3.25rem;
+      z-index: 3;
+      width: min(280px, 30%);
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.4);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      font-size: 0.88rem;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* ---------- Frosted panels ---------- */
+    .panels {
+      position: relative; z-index: 4;
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+      margin-top: clamp(-70px, -5vw, -28px);
+    }
+
+    .glass {
+      padding: clamp(1.1rem, 2.4vw, 1.75rem);
+      border: 1px solid var(--glass-edge);
+      border-radius: 28px;
+      background: var(--glass);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      backdrop-filter: blur(20px) saturate(1.2);
+      box-shadow: 0 18px 50px rgba(27, 31, 69, 0.16);
+    }
+
+    h2 { margin: 0 0 1.25rem; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    h3 { margin: 1.5rem 0 0.9rem; font-size: 1rem; font-weight: 700; }
+    h3:first-of-type { margin-top: 0; }
+
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.1rem 1.4rem; }
+
+    .field label { font-size: 0.85rem; font-weight: 700; }
+    .field .hint { margin: 0.3rem 0 0; font-size: 0.75rem; color: var(--ink-soft); }
+    .field-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .field-head output {
+      min-width: 2.2rem; padding: 0.1rem 0.6rem;
+      border-radius: 999px;
+      background: var(--ink); color: #fff;
+      font-size: 0.8rem; font-weight: 700; text-align: center;
+    }
+
+    input[type="number"] {
+      width: 100%; height: 46px; margin-top: 0.4rem;
+      padding: 0 0.9rem;
+      border: 1.5px solid rgba(27, 31, 69, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: 600 1rem var(--font);
+    }
+    input[type="number"]:focus { border-color: var(--accent); }
+
+    /* range sliders: the orange fill is driven by the --pct variable set in JS */
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; margin: 0.9rem 0 0.3rem;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent) var(--pct, 50%), rgba(27, 31, 69, 0.15) var(--pct, 50%));
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #fff; border: 5px solid var(--ink);
+      box-shadow: 0 2px 8px rgba(27, 31, 69, 0.3);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #fff; border: 5px solid var(--ink);
+    }
+
+    .form-foot {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      margin-top: 1.75rem; padding-top: 1.25rem;
+      border-top: 1px solid rgba(27, 31, 69, 0.12);
+    }
+    .stat strong { display: block; font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .stat span { font-size: 0.8rem; color: var(--ink-soft); }
+
+    .go {
+      display: inline-flex; align-items: center; gap: 1rem;
+      padding: 0.4rem 0.4rem 0.4rem 1.5rem;
+      border: 0; border-radius: 999px;
+      background: var(--ink); color: #fff;
+      font: 700 1rem var(--font);
+      cursor: pointer;
+    }
+    .go .pill-icon { width: 40px; height: 40px; }
+    .go:disabled { opacity: 0.7; cursor: wait; }
+
+    /* ---------- Result card ---------- */
+    .result { position: sticky; top: 1rem; min-height: 220px; }
+    .result p { margin: 0; }
+
+    .idle { display: grid; gap: 1rem; justify-items: start; color: var(--ink-soft); font-weight: 500; line-height: 1.5; }
+    .idle .ico { width: 48px; height: 48px; stroke-width: 1.4; color: var(--ink); }
+
+    .label { font-size: 0.85rem; font-weight: 600; color: var(--ink-soft); }
+    .years { display: flex; align-items: baseline; gap: 0.5rem; margin: 0.35rem 0 1.25rem; }
+    .years #res-years { font-size: clamp(3.6rem, 8vw, 5.5rem); font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
+    .years span:last-child { font-size: 1.15rem; font-weight: 600; color: var(--ink-soft); }
+
+    .gauge { position: relative; height: 8px; margin: 0.4rem 0 0.4rem; border-radius: 99px; background: linear-gradient(90deg, var(--sky-2), var(--accent)); }
+    .gauge-marker {
+      position: absolute; top: 50%; left: 0;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--ink); border: 4px solid #fff;
+      box-shadow: 0 2px 8px rgba(27, 31, 69, 0.3);
+      transform: translate(-50%, -50%);
+      transition: left 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .gauge-scale { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--ink-soft); }
+
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1.25rem 0 0; }
+    .facts div { padding: 0.8rem 1rem; border-radius: 16px; background: rgba(255, 255, 255, 0.7); }
+    .facts dt { font-size: 0.75rem; color: var(--ink-soft); }
+    .facts dd { margin: 0.1rem 0 0; font-size: 1.25rem; font-weight: 800; }
+    .note { margin-top: 1rem !important; font-size: 0.78rem; line-height: 1.5; color: var(--ink-soft); }
+
+    .problem { padding: 1rem 1.1rem; border-radius: 16px; background: rgba(214, 69, 48, 0.12); color: #7c2216; line-height: 1.5; }
+    .problem strong { display: block; margin-bottom: 0.25rem; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 980px) { .summary { display: none; } }
+    @media (max-width: 900px) {
+      .panels { grid-template-columns: 1fr; }
+      .result { position: static; }
+      .hero-sub { display: none; }
+    }
+    @media (max-width: 720px) {
+      .stage { grid-template-columns: 1fr; padding: 0.75rem; border-radius: 24px; }
+      .rail { display: none; }
+      .main { padding-left: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      #ring-b, .gauge-marker { transition: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Icon sprite: drawn once here, reused everywhere with <use href="#i-name"> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-ring" viewBox="0 0 24 24"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14.5c2.4.3 4 2.2 4 5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 10.5h5M9.5 13.5h5"/></symbol>
+  </svg>
+
+  {# Jinja: nicer labels and hints. Any field not listed here falls back to an auto-made label. #}
+  {% set labels = {
+    "person1_age": "Partner 1 age",
+    "person2_age": "Partner 2 age",
+    "relationship_years_before_marriage": "Years together before marriage",
+    "person1_monthly_income": "Partner 1 monthly income",
+    "person2_monthly_income": "Partner 2 monthly income",
+    "financial_stability_score": "Financial stability",
+    "communication_score": "Communication",
+    "conflict_frequency_per_month": "Arguments per month",
+    "children_count": "Children",
+    "compatibility_score": "Compatibility",
+    "education_level": "Education level",
+    "family_support_score": "Family support",
+    "marriage_type": "Marriage type"
+  } %}
+  {% set hints = {
+    "person1_age": "In years",
+    "person2_age": "In years",
+    "relationship_years_before_marriage": "Time as a couple before the wedding",
+    "person1_monthly_income": "Per month",
+    "person2_monthly_income": "Per month",
+    "financial_stability_score": "1 is shaky, 10 is very secure",
+    "communication_score": "1 is poor, 10 is excellent",
+    "conflict_frequency_per_month": "In a typical month",
+    "children_count": "Number of children",
+    "compatibility_score": "1 is a poor match, 10 is a great one"
+  } %}
+
+  {# Jinja macro: one function that draws either a slider or a number box #}
+  {% macro field(name, limits) %}
+    {% set label = labels.get(name, name.replace('_', ' ') | capitalize) %}
+    {% set hint = hints.get(name, limits[0] ~ ' to ' ~ limits[1]) %}
+    {% if name.endswith('_score') or 'frequency' in name %}
+      {% set mid = ((limits[0] + limits[1]) / 2) | round | int %}
+      <div class="field">
+        <div class="field-head">
+          <label for="f-{{ name }}">{{ label }}</label>
+          <output for="f-{{ name }}">{{ mid }}</output>
+        </div>
+        <input type="range" id="f-{{ name }}" name="{{ name }}"
+               min="{{ limits[0] }}" max="{{ limits[1] }}" step="1" value="{{ mid }}">
+        <p class="hint">{{ hint }}</p>
+      </div>
+    {% else %}
+      <div class="field">
+        <label for="f-{{ name }}">{{ label }}</label>
+        <input type="number" id="f-{{ name }}" name="{{ name }}"
+               min="{{ limits[0] }}" max="{{ limits[1] }}" step="1"
+               placeholder="{{ limits[0] }} to {{ limits[1] }}" required>
+        <p class="hint">{{ hint }}</p>
+      </div>
+    {% endif %}
+  {% endmacro %}
+
+  <div class="stage" id="top">
+
+    <nav class="rail" aria-label="Page sections">
+      <span class="rail-logo" aria-hidden="true"><svg class="ico"><use href="#i-ring"/></svg></span>
+      <a href="#form-panel" aria-label="Couple details" title="Couple details"><svg class="ico"><use href="#i-sliders"/></svg></a>
+      <a href="#result-panel" aria-label="Estimate" title="Estimate"><svg class="ico"><use href="#i-chart"/></svg></a>
+    </nav>
+
+    <div class="main">
+
+      <header class="topbar">
+        <div class="pill">
+          <span class="pill-icon"><svg class="ico"><use href="#i-ring"/></svg></span>
+          Duration predictor
+        </div>
+
+        <div class="summary" aria-label="Live summary of your inputs">
+          <div><svg class="ico"><use href="#i-users"/></svg><span><small>Ages</small><strong id="sum-ages">–</strong></span></div>
+          <div><svg class="ico"><use href="#i-clock"/></svg><span><small>Together before marriage</small><strong id="sum-years">–</strong></span></div>
+          <div><svg class="ico"><use href="#i-coin"/></svg><span><small>Combined income</small><strong id="sum-income">–</strong></span></div>
+        </div>
+
+        <button class="pill" type="reset" form="predict-form">
+          <span class="pill-icon"><svg class="ico"><use href="#i-reset"/></svg></span>
+          Start over
+        </button>
+      </header>
+
+      <section class="hero">
+        <h1>How many years<br>together?</h1>
+
+        <p class="hero-sub">Describe a couple and the model finds the couples it resembles most.</p>
+
+        <svg class="hero-art" viewBox="0 0 900 380" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+          <defs>
+            <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stop-color="#ffd2a8" stop-opacity="0.95"/>
+              <stop offset="1" stop-color="#f5b48a" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="ringA" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffffff"/>
+              <stop offset="1" stop-color="#ffd9bd"/>
+            </linearGradient>
+            <linearGradient id="ringB" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffffff"/>
+              <stop offset="1" stop-color="#cdd5ff"/>
+            </linearGradient>
+            <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#cfcbee"/>
+              <stop offset="1" stop-color="#b3b1dc" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="10"/>
+            </filter>
+          </defs>
+
+          <circle cx="455" cy="270" r="230" fill="url(#sun)"/>
+
+          <g fill="rgba(255,255,255,0.10)" stroke-width="16">
+            <g>
+              <circle cx="380" cy="190" r="130" stroke="#ffd9bd" stroke-opacity="0.6" filter="url(#soft)"/>
+              <circle cx="380" cy="190" r="130" stroke="url(#ringA)"/>
+            </g>
+            <g id="ring-b" style="transform: translateX(0px)">
+              <circle cx="530" cy="190" r="130" stroke="#cdd5ff" stroke-opacity="0.6" filter="url(#soft)"/>
+              <circle cx="530" cy="190" r="130" stroke="url(#ringB)"/>
+            </g>
+          </g>
+
+          <path d="M0 312 C150 292 320 322 470 308 S780 288 900 306 V380 H0 Z" fill="url(#hill)"/>
+        </svg>
+      </section>
+
+      <div class="panels">
+
+        <section class="glass" id="form-panel" aria-labelledby="form-title">
+          <h2 id="form-title">Describe the couple</h2>
+
+          <form id="predict-form">
+            <h3>About the couple</h3>
+            <div class="fields">
+              {% for name, limits in fields.items() %}
+                {% if not (name.endswith('_score') or 'frequency' in name) %}
+                  {{ field(name, limits) }}
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <h3>How the relationship feels</h3>
+            <div class="fields">
+              {% for name, limits in fields.items() %}
+                {% if name.endswith('_score') or 'frequency' in name %}
+                  {{ field(name, limits) }}
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <div class="form-foot">
+              <div class="stat">
+                <strong>1,000</strong>
+                <span>sample couples behind every estimate</span>
+              </div>
+              <button class="go" type="submit" id="submit-btn">
+                <span id="btn-label">Estimate duration</span>
+                <span class="pill-icon"><svg class="ico"><use href="#i-arrow"/></svg></span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="glass result" id="result-panel" aria-live="polite" aria-label="Estimate">
+
+          <div class="idle" id="res-idle">
+            <svg class="ico"><use href="#i-ring"/></svg>
+            <p>Your estimate appears here once you have filled in the couple's details.</p>
+          </div>
+
+          <div id="res-ok" hidden>
+            <p class="label">Estimated marriage duration</p>
+            <p class="years"><span id="res-years">0</span><span>years</span></p>
+
+            <div class="gauge"><span class="gauge-marker" id="res-marker"></span></div>
+            <div class="gauge-scale"><span>0</span><span>35 years</span></div>
+
+            <dl class="facts">
+              <div><dt>Couple profile</dt><dd id="res-cluster">–</dd></div>
+              <div><dt>Similar couples</dt><dd id="res-size">–</dd></div>
+            </dl>
+
+            <p class="note">
+              This is the average for the group of couples most like this one. It is a learning
+              project, so treat it as a rough guide.
+            </p>
+          </div>
+
+          <div class="problem" id="res-err" role="alert" hidden>
+            <strong>Couldn't estimate</strong>
+            <span id="res-err-text"></span>
+          </div>
+
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form       = document.getElementById("predict-form");
+    const button     = document.getElementById("submit-btn");
+    const btnLabel   = document.getElementById("btn-label");
+    const ringB      = document.getElementById("ring-b");
+    const marker     = document.getElementById("res-marker");
+    const panels     = { idle: "res-idle", ok: "res-ok", err: "res-err" };
+    const SCALE_MAX  = 35;   // years shown at the right end of the gauge
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* ----- small helpers ----- */
+    function show(which) {
+      for (const [key, id] of Object.entries(panels)) {
+        document.getElementById(id).hidden = key !== which;
+      }
+    }
+
+    function value(name) {
+      const el = form.elements[name];
+      return el && el.value !== "" ? Number(el.value) : null;
+    }
+
+    /* ----- keep sliders and the top summary in sync with the inputs ----- */
+    function syncSliders() {
+      form.querySelectorAll('input[type="range"]').forEach((slider) => {
+        const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+        slider.style.setProperty("--pct", pct + "%");
+        const out = form.querySelector(`output[for="${slider.id}"]`);
+        if (out) out.textContent = slider.value;
+      });
+    }
+
+    function syncSummary() {
+      const a = value("person1_age"), b = value("person2_age");
+      const yrs = value("relationship_years_before_marriage");
+      const i1 = value("person1_monthly_income"), i2 = value("person2_monthly_income");
+
+      document.getElementById("sum-ages").textContent =
+        a !== null && b !== null ? `${a} and ${b}` : "–";
+      document.getElementById("sum-years").textContent =
+        yrs !== null ? `${yrs} years` : "–";
+      document.getElementById("sum-income").textContent =
+        i1 !== null && i2 !== null ? (i1 + i2).toLocaleString() : "–";
+    }
+
+    form.addEventListener("input", () => { syncSliders(); syncSummary(); });
+    form.addEventListener("reset", () => {
+      // the browser resets the fields AFTER this event, so wait one tick
+      setTimeout(() => { syncSliders(); syncSummary(); show("idle"); moveRings(0); }, 0);
+    });
+    syncSliders();
+    syncSummary();
+
+    /* ----- the two rings slide closer together for longer marriages ----- */
+    function moveRings(years) {
+      const closer = Math.min(years / SCALE_MAX, 1) * 70;   // up to 70 units closer
+      ringB.style.transform = `translateX(${-closer}px)`;
+    }
+
+    /* ----- count the number up ----- */
+    function countUp(el, target) {
+      if (reduceMotion) { el.textContent = target.toFixed(1); return; }
+      const start = performance.now(), duration = 900;
+      function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        el.textContent = (target * (1 - Math.pow(1 - t, 3))).toFixed(1);
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function showSuccess(result) {
+      const years = Number(result.predicted_duration);
+      show("ok");
+
+      document.getElementById("res-cluster").textContent = "#" + result.cluster;
+      document.getElementById("res-size").textContent = result.cluster_size;
+      countUp(document.getElementById("res-years"), years);
+
+      marker.style.left = "0%";
+      void marker.offsetWidth;                       // force a layout so the move animates
+      marker.style.left = Math.min(years / SCALE_MAX, 1) * 100 + "%";
+      moveRings(years);
+    }
+
+    function showError(message) {
+      document.getElementById("res-err-text").textContent = message;
+      show("err");
+    }
+
+    /* ----- send the form to Flask ----- */
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const data = {};
+      for (const [name, val] of new FormData(form).entries()) {
+        data[name] = Number(val);
+      }
+
+      button.disabled = true;
+      btnLabel.textContent = "Estimating...";
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        if (result.success) showSuccess(result);
+        else showError(result.error || "Something went wrong. Check the values and try again.");
+      } catch (err) {
+        showError("The server did not respond. Check that Flask is still running.");
+      } finally {
+        button.disabled = false;
+        btnLabel.textContent = "Estimate duration";
+        document.getElementById("result-panel")
+          .scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+      }
+    });
+  </script>
+</body>
+</html>
