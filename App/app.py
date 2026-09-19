@@ -1,5 +1,3 @@
-# app.py
-# Flask backend: receives couple details, calls the R model, returns the prediction.
 
 import json
 import os
@@ -8,8 +6,25 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
-# Project root = the folder above "App/"
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Current Python file is App/app.py.
+APP_DIR = Path(__file__).resolve().parent
+
+# Find the project directory by looking for the folders used by predict.R.
+# This supports either:
+#   repository/R + repository/models
+# or:
+#   repository/App/R + repository/App/models
+CANDIDATE_DIRS = [APP_DIR, APP_DIR.parent]
+PROJECT_DIR = next(
+    (
+        p for p in CANDIDATE_DIRS
+        if (p / "R" / "predict.R").exists()
+        and (p / "models").exists()
+    ),
+    APP_DIR,
+)
+
+R_SCRIPT = PROJECT_DIR / "R" / "predict.R"
 
 # Use the local Windows Rscript path on your PC.
 # On Render/Linux, use the Rscript executable installed by Docker.
@@ -78,12 +93,18 @@ def predict():
 
     # Call the R script, sending the JSON through stdin.
     try:
+        if not R_SCRIPT.exists():
+            return jsonify(
+                success=False,
+                error=f"R script not found. Checked: {R_SCRIPT}"
+            ), 500
+
         proc = subprocess.run(
-            [RSCRIPT, "R/predict.R"],
+            [RSCRIPT, str(R_SCRIPT)],
             input=json.dumps(cleaned),
             capture_output=True,
             text=True,
-            cwd=BASE_DIR,
+            cwd=PROJECT_DIR,
             timeout=30,
         )
     except FileNotFoundError:
@@ -103,7 +124,8 @@ def predict():
         print("R stderr:", proc.stderr)
         return jsonify(
             success=False,
-            error="R model failed to run"
+            error="R model failed to run",
+            r_error=proc.stderr.strip() or "No R error output was produced"
         ), 500
 
     # Read the JSON that R printed.
