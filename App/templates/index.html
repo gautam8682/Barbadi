@@ -6,6 +6,8 @@
   <title>Marriage Duration Predictor</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -490,26 +492,26 @@
 
   {# Jinja: nicer labels and hints. Any field not listed here falls back to an auto-made label. #}
   {% set labels = {
-    "Male Candidate Age": "Male candidate age",
-    "Female Candidate Age": "Female candidate age",
+    "person1_age": "Male candidate age",
+    "person2_age": "Female candidate age",
     "relationship_years_before_marriage": "Years together before marriage",
-    "Male Candidate Monthly Income": "Male candidate monthly income",
-    "Female Candidate Monthly Income": "Female candidate monthly income",
+    "person1_monthly_income": "Male candidate monthly income",
+    "person2_monthly_income": "Female candidate monthly income",
     "financial_stability_score": "Financial stability",
     "communication_score": "Communication",
-    "KALESH per month": "Kalesh per month",
+    "conflict_frequency_per_month": "Kalesh per month",
     "children_count": "Children",
     "compatibility_score": "Compatibility"
   } %}
   {% set hints = {
-    "Male Candidate Age": "21 to 50",
-    "Female Candidate Age": "21 to 50",
+    "person1_age": "21 to 50",
+    "person2_age": "21 to 50",
     "relationship_years_before_marriage": "Time as a couple before the wedding",
-    "Male Candidate Monthly Income": "Per month (0 to 1,500,000)",
-    "Female Candidate Monthly Income": "Per month (0 to 1,500,000)",
+    "person1_monthly_income": "Per month (0 to 1,500,000)",
+    "person2_monthly_income": "Per month (0 to 1,500,000)",
     "financial_stability_score": "1 is shaky, 10 is very secure",
     "communication_score": "1 is poor, 10 is excellent",
-    "KALESH per month": "0 to 15 arguments per month",
+    "conflict_frequency_per_month": "0 to 15 arguments per month",
     "children_count": "Number of children",
     "compatibility_score": "1 is a poor match, 10 is a great one"
   } %}
@@ -518,7 +520,7 @@
   {% macro field(name, limits) %}
     {% set label = labels.get(name, name.replace('_', ' ') | capitalize) %}
     {% set hint = hints.get(name, limits[0] ~ ' to ' ~ limits[1]) %}
-    {% if name.endswith('_score') or 'frequency' in name or name == 'KALESH per month' %}
+    {% if name.endswith('_score') or 'frequency' in name or name == 'conflict_frequency_per_month' %}
       {% set mid = ((limits[0] + limits[1]) / 2) | round | int %}
       <div class="field">
         <div class="field-head">
@@ -622,7 +624,7 @@
             <h3>About the couple</h3>
             <div class="fields">
               {% for name, limits in fields.items() %}
-                {% if not (name.endswith('_score') or 'frequency' in name or name == 'KALESH per month') %}
+                {% if not (name.endswith('_score') or 'frequency' in name or name == 'conflict_frequency_per_month') %}
                   {{ field(name, limits) }}
                 {% endif %}
               {% endfor %}
@@ -631,7 +633,7 @@
             <h3>How the relationship feels</h3>
             <div class="fields">
               {% for name, limits in fields.items() %}
-                {% if name.endswith('_score') or 'frequency' in name or name == 'KALESH per month' %}
+                {% if name.endswith('_score') or 'frequency' in name or name == 'conflict_frequency_per_month' %}
                   {{ field(name, limits) }}
                 {% endif %}
               {% endfor %}
@@ -707,17 +709,40 @@
 
     // Put your local animation here:
     // static/asset/Animation.json
-    const lottieAnimation = window.lottie ? lottie.loadAnimation({
-      container: estimateLottie,
-      renderer: "svg",
-      loop: true,
-      autoplay: false,
-      path: "{{ url_for('static', filename='asset/Animation.json') }}"
-    }) : null;
+    let lottieAnimation = null;
 
-    // Slower playback makes each animation cycle last longer and feel smoother.
-    if (lottieAnimation) {
+    function initLottie() {
+      if (!window.lottie) {
+        console.error("Lottie library failed to load.");
+        return;
+      }
+
+      lottieAnimation = window.lottie.loadAnimation({
+        container: estimateLottie,
+        renderer: "svg",
+        loop: true,
+        autoplay: false,
+        path: "{{ url_for('static', filename='Animation.json') }}",
+        rendererSettings: {
+          preserveAspectRatio: "xMidYMid meet"
+        }
+      });
+
       lottieAnimation.setSpeed(0.7);
+
+      lottieAnimation.addEventListener("data_ready", () => {
+        console.log("Lottie loaded successfully.");
+      });
+
+      lottieAnimation.addEventListener("data_failed", () => {
+        console.error("Lottie failed to load. Check App/static/asset/Animation.json");
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initLottie);
+    } else {
+      initLottie();
     }
 
     /* ----- small helpers ----- */
@@ -743,9 +768,9 @@
     }
 
     function syncSummary() {
-      const a = value("Male Candidate Age"), b = value("Female Candidate Age");
+      const a = value("person1_age"), b = value("person2_age");
       const yrs = value("relationship_years_before_marriage");
-      const i1 = value("Male Candidate Monthly Income"), i2 = value("Female Candidate Monthly Income");
+      const i1 = value("person1_monthly_income"), i2 = value("person2_monthly_income");
 
       document.getElementById("sum-ages").textContent =
         a !== null && b !== null ? `${a} and ${b}` : "–";
@@ -755,7 +780,10 @@
         i1 !== null && i2 !== null ? (i1 + i2).toLocaleString() : "–";
     }
 
-    form.addEventListener("input", () => { syncSliders(); syncSummary(); });
+    form.addEventListener("input", () => {
+      syncSliders();
+      syncSummary();
+    });
     form.addEventListener("reset", () => {
       // the browser resets the fields AFTER this event, so wait one tick
       setTimeout(() => { syncSliders(); syncSummary(); show("idle"); moveRings(0); }, 0);
@@ -807,27 +835,6 @@
       const data = {};
       for (const [name, val] of new FormData(form).entries()) {
         data[name] = Number(val);
-      }
-
-      /*
-       * Compatibility layer:
-       * The running Flask server shown in the browser is still expecting
-       * the original CSV/R-model field names, while the UI uses the new
-       * human-friendly names. Send both sets of keys so either version of
-       * the backend can validate the request.
-       */
-      const aliases = {
-        "Male Candidate Age": "person1_age",
-        "Female Candidate Age": "person2_age",
-        "Male Candidate Monthly Income": "person1_monthly_income",
-        "Female Candidate Monthly Income": "person2_monthly_income",
-        "KALESH per month": "conflict_frequency_per_month"
-      };
-
-      for (const [newName, oldName] of Object.entries(aliases)) {
-        if (Object.prototype.hasOwnProperty.call(data, newName)) {
-          data[oldName] = data[newName];
-        }
       }
 
       button.disabled = true;
