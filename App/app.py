@@ -12,7 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # If Windows can't find Rscript, put the full path here, e.g.
 # RSCRIPT = r"C:\Program Files\R\R-4.4.1\bin\Rscript.exe"
-RSCRIPT = r"C:\Program Files\R\R-4.6.1\bin\Rscript.exe"
+import os
+
+RSCRIPT = os.environ.get("RSCRIPT", "Rscript")
 
 app = Flask(__name__)
 
@@ -89,4 +91,8 @@ def predict():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=False
+    )
