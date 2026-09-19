@@ -33,27 +33,29 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: clamp(0.75rem, 2vw, 1.5rem);
+      padding: 0;
       font-family: var(--font);
       color: var(--ink);
       background:
-        radial-gradient(80% 60% at 20% 10%, rgba(255, 255, 255, 0.5), transparent 70%),
-        var(--page);
+        radial-gradient(80% 60% at 20% 10%, rgba(255, 255, 255, 0.06), transparent 70%),
+        linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 30%, var(--sky-3) 58%, var(--ground-1) 100%);
     }
 
     /* ---------- The stage: one big rounded scene ---------- */
     .stage {
       position: relative;
-      max-width: 1280px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      min-height: 100vh;
+      margin: 0;
       padding: 1rem 1rem 1.25rem;
       display: grid;
       grid-template-columns: 76px minmax(0, 1fr);
       align-items: start;
-      border-radius: 32px;
+      border-radius: 0;
       overflow: hidden;
-      overflow: clip;   /* clip (unlike hidden) still lets position: sticky work */
-      box-shadow: 0 30px 80px rgba(27, 31, 69, 0.25);
+      overflow: clip;
+      box-shadow: none;
       background:
         radial-gradient(90% 45% at 50% 42%, rgba(245, 180, 138, 0.55), transparent 70%),
         linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 30%, var(--sky-3) 58%, var(--ground-1) 100%);
@@ -206,6 +208,148 @@
     .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.1rem 1.4rem; }
 
     .field label { font-size: 0.85rem; font-weight: 700; }
+
+    /* ---------- Interactive hover effects ---------- */
+    .field {
+      position: relative;
+      padding: 0.7rem;
+      margin: -0.7rem;
+      border: 1px solid transparent;
+      border-radius: 18px;
+      transition:
+        transform 0.22s ease,
+        background 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+    }
+
+    .field:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.34);
+      border-color: rgba(255, 255, 255, 0.58);
+      box-shadow: 0 10px 24px rgba(27, 31, 69, 0.08);
+    }
+
+    .field:hover .hint {
+      color: var(--ink);
+    }
+
+    .field-head output {
+      transition: transform 0.22s ease;
+    }
+
+    .field:hover .field-head output {
+      transform: scale(1.04);
+    }
+
+    .facts div {
+      transition: transform 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .facts div:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 8px 18px rgba(27, 31, 69, 0.08);
+    }
+
+    .rail a {
+      transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .rail a:hover {
+      transform: scale(1.08);
+      background: rgba(27, 31, 69, 0.08);
+      box-shadow: 0 5px 14px rgba(27, 31, 69, 0.10);
+    }
+
+    .pill,
+    .go {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    button.pill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(27, 31, 69, 0.10);
+    }
+
+    .go:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(27, 31, 69, 0.20);
+    }
+
+    .go:not(:disabled):active {
+      transform: translateY(0);
+    }
+
+    /* ---------- Large Lottie loading overlay ---------- */
+    .estimate-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background: rgba(27, 31, 69, 0.58);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+
+    .estimate-loading[hidden] {
+      display: none !important;
+    }
+
+    #estimate-lottie {
+      width: 60vw;
+      height: 60vh;
+      min-width: 280px;
+      min-height: 280px;
+      max-width: 900px;
+      max-height: 900px;
+      display: block;
+    }
+
+    #estimate-lottie svg {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    .estimate-loading-text {
+      position: absolute;
+      bottom: 8vh;
+      margin: 0;
+      padding: 0.75rem 1.2rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font-weight: 800;
+      font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    @media (max-width: 720px) {
+      #estimate-lottie {
+        width: 60vw;
+        height: 60vw;
+        min-width: 220px;
+        min-height: 220px;
+      }
+
+      .estimate-loading-text {
+        bottom: 7vh;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .field,
+      .facts div,
+      .rail a,
+      .pill,
+      .go,
+      .field-head output {
+        transition: none;
+      }
+    }
     .field .hint { margin: 0.3rem 0 0; font-size: 0.75rem; color: var(--ink-soft); }
     .field-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
     .field-head output {
@@ -305,7 +449,7 @@
       .hero-sub { display: none; }
     }
     @media (max-width: 720px) {
-      .stage { grid-template-columns: 1fr; padding: 0.75rem; border-radius: 24px; }
+      .stage { grid-template-columns: 1fr; padding: 0.75rem; border-radius: 0; min-height: 100vh; }
       .rail { display: none; }
       .main { padding-left: 0; }
     }
@@ -314,7 +458,21 @@
       html { scroll-behavior: auto; }
       #ring-b, .gauge-marker { transition: none; }
     }
+
+    /* Full-screen edge-to-edge layout: no browser-visible white frame */
+    html, body {
+      width: 100%;
+      min-width: 100%;
+      background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 30%, var(--sky-3) 58%, var(--ground-1) 100%);
+    }
+
+    .stage {
+      min-height: 100svh;
+    }
+
   </style>
+  <!-- Lottie JSON player -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
 
 <body>
@@ -332,29 +490,26 @@
 
   {# Jinja: nicer labels and hints. Any field not listed here falls back to an auto-made label. #}
   {% set labels = {
-    "person1_age": "Partner 1 age",
-    "person2_age": "Partner 2 age",
+    "Male Candidate Age": "Male candidate age",
+    "Female Candidate Age": "Female candidate age",
     "relationship_years_before_marriage": "Years together before marriage",
-    "person1_monthly_income": "Partner 1 monthly income",
-    "person2_monthly_income": "Partner 2 monthly income",
+    "Male Candidate Monthly Income": "Male candidate monthly income",
+    "Female Candidate Monthly Income": "Female candidate monthly income",
     "financial_stability_score": "Financial stability",
     "communication_score": "Communication",
-    "conflict_frequency_per_month": "Arguments per month",
+    "KALESH per month": "Kalesh per month",
     "children_count": "Children",
-    "compatibility_score": "Compatibility",
-    "education_level": "Education level",
-    "family_support_score": "Family support",
-    "marriage_type": "Marriage type"
+    "compatibility_score": "Compatibility"
   } %}
   {% set hints = {
-    "person1_age": "In years",
-    "person2_age": "In years",
+    "Male Candidate Age": "21 to 50",
+    "Female Candidate Age": "21 to 50",
     "relationship_years_before_marriage": "Time as a couple before the wedding",
-    "person1_monthly_income": "Per month",
-    "person2_monthly_income": "Per month",
+    "Male Candidate Monthly Income": "Per month (0 to 1,500,000)",
+    "Female Candidate Monthly Income": "Per month (0 to 1,500,000)",
     "financial_stability_score": "1 is shaky, 10 is very secure",
     "communication_score": "1 is poor, 10 is excellent",
-    "conflict_frequency_per_month": "In a typical month",
+    "KALESH per month": "0 to 15 arguments per month",
     "children_count": "Number of children",
     "compatibility_score": "1 is a poor match, 10 is a great one"
   } %}
@@ -363,7 +518,7 @@
   {% macro field(name, limits) %}
     {% set label = labels.get(name, name.replace('_', ' ') | capitalize) %}
     {% set hint = hints.get(name, limits[0] ~ ' to ' ~ limits[1]) %}
-    {% if name.endswith('_score') or 'frequency' in name %}
+    {% if name.endswith('_score') or 'frequency' in name or name == 'KALESH per month' %}
       {% set mid = ((limits[0] + limits[1]) / 2) | round | int %}
       <div class="field">
         <div class="field-head">
@@ -467,7 +622,7 @@
             <h3>About the couple</h3>
             <div class="fields">
               {% for name, limits in fields.items() %}
-                {% if not (name.endswith('_score') or 'frequency' in name) %}
+                {% if not (name.endswith('_score') or 'frequency' in name or name == 'KALESH per month') %}
                   {{ field(name, limits) }}
                 {% endif %}
               {% endfor %}
@@ -476,7 +631,7 @@
             <h3>How the relationship feels</h3>
             <div class="fields">
               {% for name, limits in fields.items() %}
-                {% if name.endswith('_score') or 'frequency' in name %}
+                {% if name.endswith('_score') or 'frequency' in name or name == 'KALESH per month' %}
                   {{ field(name, limits) }}
                 {% endif %}
               {% endfor %}
@@ -484,7 +639,7 @@
 
             <div class="form-foot">
               <div class="stat">
-                <strong>1,000</strong>
+                <strong>1,000,000</strong>
                 <span>sample couples behind every estimate</span>
               </div>
               <button class="go" type="submit" id="submit-btn">
@@ -530,6 +685,13 @@
     </div>
   </div>
 
+
+  <!-- Large Lottie animation shown while /predict is running -->
+  <div class="estimate-loading" id="estimate-loading" hidden aria-live="polite" aria-label="Estimating duration">
+    <div id="estimate-lottie" role="img" aria-label="Estimating marriage duration"></div>
+    <p class="estimate-loading-text">Estimating duration...</p>
+  </div>
+
   <script>
     const form       = document.getElementById("predict-form");
     const button     = document.getElementById("submit-btn");
@@ -539,6 +701,24 @@
     const panels     = { idle: "res-idle", ok: "res-ok", err: "res-err" };
     const SCALE_MAX  = 35;   // years shown at the right end of the gauge
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const estimateLoading = document.getElementById("estimate-loading");
+    const estimateLottie = document.getElementById("estimate-lottie");
+
+    // Put your local animation here:
+    // static/asset/Animation.json
+    const lottieAnimation = window.lottie ? lottie.loadAnimation({
+      container: estimateLottie,
+      renderer: "svg",
+      loop: true,
+      autoplay: false,
+      path: "{{ url_for('static', filename='asset/Animation.json') }}"
+    }) : null;
+
+    // Slower playback makes each animation cycle last longer and feel smoother.
+    if (lottieAnimation) {
+      lottieAnimation.setSpeed(0.7);
+    }
 
     /* ----- small helpers ----- */
     function show(which) {
@@ -563,9 +743,9 @@
     }
 
     function syncSummary() {
-      const a = value("person1_age"), b = value("person2_age");
+      const a = value("Male Candidate Age"), b = value("Female Candidate Age");
       const yrs = value("relationship_years_before_marriage");
-      const i1 = value("person1_monthly_income"), i2 = value("person2_monthly_income");
+      const i1 = value("Male Candidate Monthly Income"), i2 = value("Female Candidate Monthly Income");
 
       document.getElementById("sum-ages").textContent =
         a !== null && b !== null ? `${a} and ${b}` : "–";
@@ -629,8 +809,38 @@
         data[name] = Number(val);
       }
 
+      /*
+       * Compatibility layer:
+       * The running Flask server shown in the browser is still expecting
+       * the original CSV/R-model field names, while the UI uses the new
+       * human-friendly names. Send both sets of keys so either version of
+       * the backend can validate the request.
+       */
+      const aliases = {
+        "Male Candidate Age": "person1_age",
+        "Female Candidate Age": "person2_age",
+        "Male Candidate Monthly Income": "person1_monthly_income",
+        "Female Candidate Monthly Income": "person2_monthly_income",
+        "KALESH per month": "conflict_frequency_per_month"
+      };
+
+      for (const [newName, oldName] of Object.entries(aliases)) {
+        if (Object.prototype.hasOwnProperty.call(data, newName)) {
+          data[oldName] = data[newName];
+        }
+      }
+
       button.disabled = true;
       btnLabel.textContent = "Estimating...";
+
+      // Keep the loading animation visible for at least 3.5 seconds,
+      // even when the backend responds very quickly.
+      const loadingStartedAt = performance.now();
+
+      if (lottieAnimation) {
+        estimateLoading.hidden = false;
+        lottieAnimation.goToAndPlay(0, true);
+      }
 
       try {
         const response = await fetch("/predict", {
@@ -639,13 +849,31 @@
           body: JSON.stringify(data),
         });
         const result = await response.json();
+
+        const elapsed = performance.now() - loadingStartedAt;
+        const remaining = Math.max(0, 3500 - elapsed);
+        if (remaining > 0) {
+          await new Promise(resolve => setTimeout(resolve, remaining));
+        }
+
         if (result.success) showSuccess(result);
         else showError(result.error || "Something went wrong. Check the values and try again.");
       } catch (err) {
+        const elapsed = performance.now() - loadingStartedAt;
+        const remaining = Math.max(0, 3500 - elapsed);
+        if (remaining > 0) {
+          await new Promise(resolve => setTimeout(resolve, remaining));
+        }
         showError("The server did not respond. Check that Flask is still running.");
       } finally {
         button.disabled = false;
         btnLabel.textContent = "Estimate duration";
+
+        if (lottieAnimation) {
+          lottieAnimation.stop();
+          estimateLoading.hidden = true;
+        }
+
         document.getElementById("result-panel")
           .scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
       }

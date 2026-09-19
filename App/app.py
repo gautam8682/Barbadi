@@ -18,15 +18,15 @@ app = Flask(__name__)
 
 # Every input the model needs, with the allowed (min, max) range
 FIELDS = {
-    "person1_age": (21, 40),
-    "person2_age": (21, 40),
-    "relationship_years_before_marriage": (0, 8),
-    "person1_monthly_income": (10000, 150000),
-    "person2_monthly_income": (10000, 150000),
+    "person1_age": (21, 50),
+    "person2_age": (21, 50),
+    "relationship_years_before_marriage": (0, 10),
+    "person1_monthly_income": (0, 1500000),
+    "person2_monthly_income": (0, 1500000),
     "financial_stability_score": (1, 10),
     "communication_score": (1, 10),
     "conflict_frequency_per_month": (0, 15),
-    "children_count": (0, 4),
+    "children_count": (0, 10),
     "compatibility_score": (1, 10),
 }
 
